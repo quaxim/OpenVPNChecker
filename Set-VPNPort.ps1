@@ -1,7 +1,3 @@
-#Version 3.13
-$WEBGUI_USER_ut="admin"  #username for Utorrent
-$WEBGUI_PASS_ut="" #password for Utorrent
-$WEBGUI_PORT_ut=801 #port number for Utorrent
 $WEBGUI_USER_qb="admin"  #username for qBittorrent
 $WEBGUI_PASS_qb="" #password for qBittorrent
 $WEBGUI_PORT_qb=9091 #port number for Qbittorrent
@@ -14,11 +10,7 @@ $EnabledAdvanceRouting = $True  # Set to $true to use this when you have a stati
 # EnabledAdvanceRouting only works if $Enableautocheck is is $true
 $disableportforwarduser=$False # if you don't want to enable port forwarding
 $defaultgateway = "192.168.1.1" # Part of Advance routing, change it to your router's ip address
-$Applist = @()
-$Applistnum = 1 #Default app list to select 0 = utorrent, 1 = qBittorrent, 2 = other
-$Applist += ,@("uTorrent","fnutorrent") # first varaible is name of program, second is function to call
-$Applist += ,@("qBittorrent", "fnqbittorrent")
-$Applist += ,@("Other", "fnother")
+$Applist = @("qBittorrent", "fnqbittorrent")
 $PIAservernum = 0 #default $PIAserver you wish to connect to Must enable AdvanceRouting
 $PIAserver = @() # List 10 servers to connect to.
 $PIAserver += ,@("france.privateinternetaccess.com",$true)# First variable is server address, second does it support port forwarding
@@ -44,7 +36,7 @@ $disableportforwarduser = $False # to temporary disable port forwarding when con
 #Script below,  be careful changing anything below this line
 $Windowswidth = 100
 $WindowsHeight = 26
-$host.ui.RawUI.WindowTitle = "PIA Port Forwarding for Utorrent/qBittorrent/Other"
+$host.ui.RawUI.WindowTitle = "PIA Port Forwarding for qBittorrent"
 $rand = New-Object  System.Random
 $chrstg = "abcdef1234567890"
 $servererror = $true
@@ -57,6 +49,11 @@ $emptyspaces = ""
 $isprocessactive = $False
 $portupdatesuccessful = $False
 1..$Windowswidth | % {$emptyspaces += " " }
+
+#TODO: Configuring Logging.
+#TODO: Make debug flags to stop clearing the screens
+
+
 
 Function clearscreen ($start, $fullclear = $false) {
     if ($fullclear) {
@@ -122,6 +119,8 @@ Function AdvanceRouting{
         Start-Sleep -s 60
     }
 }
+
+#TODO: What is the point here in changing the window size 
 Function setwindowsize {
 	$pshost = get-host
 	$pswindow = $pshost.ui.rawui
@@ -158,27 +157,6 @@ Function resetadapter{
 Function Stop-PIAAdapter {
 	Stop-Service OpenVPNService
 }
-Function fnutorrent{
-	try {
-		clearscreen ($startline + 1)
-		$url="http://" + $ip + ":" + $WEBGUI_PORT_ut + "/gui/"
-		$Credential = (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $WEBGUI_USER_ut,  ($WEBGUI_PASS_ut | ConvertTo-SecureString -AsPlainText -Force ))
-		$response = Invoke-WebRequest -Uri $url"token.html"  -Credential $Credential -SessionVariable my_session 
-		$token = ($response.tostring()).split('>')[2].split('<')[0]
-		$response = Invoke-WebRequest -Uri $url"?action=setsetting&s=bind_port&v=$port&token=$token" -WebSession $my_session 
-		$response = (Invoke-WebRequest -Uri $url"?action=getsettings&token=$token" -WebSession $my_session).tostring()
-		$response= ($Response.substring($Response.indexof("bind_port")-1)).substring(14)
-		clearscreen ($startline + 1)
-		Write-Host "Utorrent set to=" $response.Substring(0,$Response.indexof(","))
-		return $True
-	}
-	catch [system.exception] {
-		$a = get-date
-		write-host $_.Exception.Message
-		Write-Host $a.toshorttimestring() "Failed to update port via uTorrent WEBGUI."
-		return $False
-	}
-}
 Function fnqbittorrent{
 	try {
 		clearscreen ($startline + 1)
@@ -201,20 +179,8 @@ Function fnqbittorrent{
 		}
 	
 }
-Function fnother{
-	try{
-		# $port is the varible for port write what you need here
-		Write-Host $a.toshorttimestring() "you need to update function fnother to use another application"
-		return $True
-	}
-	catch [system.exception] {
-		$a = get-date
-		Write-Host $a.toshorttimestring() "Failed to update Other"
-		write-Host "Please check the information you've given this script for Other."
-		Start-Sleep -s 60
-		return $False
-	}
-}
+
+#TODO: figure out what this does and why we will still need it. 
 Function setapp{
 	try{
 		return invoke-expression  $Applist[$Applistnum][1]
