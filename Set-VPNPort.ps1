@@ -237,6 +237,15 @@ if ($waittime -gt 0) {
 
 $disableportforward = !$PIAserver[$PIAservernum][1]
 
+Function Send-DiscordMessage($message) {
+	$webhook = [IO.File]::ReadAllText("C:\Users\adam\Documents\GitHub\OpenVPNChecker\webhook.txt")
+    $payload = @{
+        "content" = "$message";
+    }
+    Invoke-WebRequest -Body (ConvertTo-Json -Compress -InputObject $payload) -Method Post -ContentType "application/json" -Uri "$webhook"
+    Start-Sleep 1
+}
+
 while($true) {
 	try {
         $ip = (Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Where-Object {$_.Description -like "TAP*"}).IPAddress[0]
@@ -377,6 +386,7 @@ while($true) {
 	Write-Host "'r' to stop and reconnect to PIA,"
 	Write-Host "'l' to list PIA severs, '0-9' to connected to a specific PIA server,"
 	Write-Host "'t' to change protocols, 'e' to increase encryption, or any other key to refresh."
+	Send-DiscordMessage -$message = "You are currently connected to $PIAserver[$PIAservernum][0] $PIAcipher[$PIAStrongEncryption][$PIAportsnum] ($PIAprotocal[$PIAportsnum]).ToUpper() $PIAcipher[$PIAStrongEncryption][6]"
 	$counter = 0
 	while(!$Host.UI.RawUI.KeyAvailable -and ($counter++ -le  $checktime) -and !$servererror) {
 		$strmoving | ForEach-Object {
