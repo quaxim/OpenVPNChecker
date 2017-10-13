@@ -1,3 +1,5 @@
+
+#qBitTorrent Settings 
 $WEBGUI_USER_qb="admin"  #username for qBittorrent
 $WEBGUI_PASS_qb="" #password for qBittorrent
 $WEBGUI_PORT_qb=9091 #port number for Qbittorrent
@@ -10,6 +12,7 @@ $EnabledAdvanceRouting = $True  # Set to $true to use this when you have a stati
 # EnabledAdvanceRouting only works if $Enableautocheck is is $true
 $disableportforwarduser=$False # if you don't want to enable port forwarding
 $defaultgateway = "192.168.1.1" # Part of Advance routing, change it to your router's ip address
+$Applist = @()
 $Applist = @("qBittorrent", "fnqbittorrent")
 $PIAservernum = 0 #default $PIAserver you wish to connect to Must enable AdvanceRouting
 $PIAserver = @() # List 10 servers to connect to.
@@ -33,6 +36,8 @@ $PIAcipher += ,@(1197,501, "aes-256-cbc","ca.rsa.4096.crt","crl.rsa.4096.pem", "
 $DNSSERVER = "8.8.8.8" # part of Advance Routing, use any dns server, the default is google dns 8.8.8.8
 $pathtoovpn = "C:\Program Files\OpenVPN\config\pia.ovpn" # path to pia opvn file, this scripts edits the file and adds piaserver ip address, change to match yours ovpn location
 $disableportforwarduser = $False # to temporary disable port forwarding when connected to a non-port forwarding server
+
+
 #Script below,  be careful changing anything below this line
 $Windowswidth = 100
 $WindowsHeight = 26
@@ -183,7 +188,7 @@ Function fnqbittorrent{
 #TODO: figure out what this does and why we will still need it. 
 Function setapp{
 	try{
-		return invoke-expression  $Applist[$Applistnum][1]
+		return invoke-expression  $Applist[1]
 	}
 	catch [system.exception] {
 		Write-Host $a.toshorttimestring() "Unable to call function script error. This is an unrecoverable error."
@@ -269,7 +274,7 @@ while($true) {
 		continue
 	}
 
-	$ProcessActive = Get-Process $Applist[$Applistnum][0] -ErrorAction SilentlyContinue
+	$ProcessActive = Get-Process $Applist[0] -ErrorAction SilentlyContinue
 	
 	if($ProcessActive -eq $null) {
 		$isprocessactive = $False
@@ -335,7 +340,7 @@ while($true) {
 		if ($isprocessactive) {
 			$portupdatesuccessful = setapp
 		} else {
-			Write-host $a.toshorttimestring() $Applist[$Applistnum][0] "is not running."
+			Write-host $a.toshorttimestring() $Applist[0] "is not running."
 		}
 	}
 	if ($Checkqbittorentstalled ){
