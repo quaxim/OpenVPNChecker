@@ -1,5 +1,8 @@
 
-#qBitTorrent Settings 
+##qBitTorrent Settings 
+$TorrentApp = "qBittorrent"
+#$Applist = @()
+#$Applist = @("qBittorrent", "Set-QBTorrent")
 $WEBGUI_USER_qb="admin"  #username for qBittorrent
 $WEBGUI_PASS_qb="" #password for qBittorrent
 $WEBGUI_PORT_qb=9091 #port number for Qbittorrent
@@ -9,16 +12,14 @@ $checktime=60 # How often to check if still connected in seconds Default 60
 $waittime=0 #how long to wait before starting the script, useful if you need time for the vpn to connect default 0
 $ENABLEAUTOCHECK = $True # Set to $True to have the service restart to connect to vpn
 $EnabledAdvanceRouting = $True  # Set to $true to use this when you have a static ip address and no dns or gateway assigned to your nic
-# EnabledAdvanceRouting only works if $Enableautocheck is is $true
 $disableportforwarduser=$False # if you don't want to enable port forwarding
 $defaultgateway = "192.168.1.1" # Part of Advance routing, change it to your router's ip address
-$Applist = @()
-$Applist = @("qBittorrent", "fnqbittorrent")
-$PIAservernum = 0 #default $PIAserver you wish to connect to Must enable AdvanceRouting
+$PIAservernum = 0 #default $PIAserver
 $PIAserver = @() # List 10 servers to connect to.
-$PIAserver += ,@("france.privateinternetaccess.com",$true)# First variable is server address, second does it support port forwarding
+# First variable is server address, second does it support port forwarding
 $PIAserver += ,@("ca-toronto.privateinternetaccess.com",$true) 
 $PIAserver += ,@("ca.privateinternetaccess.com",$true)
+$PIAserver += ,@("france.privateinternetaccess.com",$true)
 $PIAserver += ,@("israel.privateinternetaccess.com",$true)
 $PIAserver += ,@("nl.privateinternetaccess.com",$true)
 $PIAserver += ,@("swiss.privateinternetaccess.com",$true)
@@ -49,7 +50,7 @@ $currentip=''
 $saveX = [console]::CursorLeft  
 $saveY = 0
 $strmoving = '|','/','-','\'    
-$startline = 1 #which line to start updating on based on function printsettings()
+$startline = 1 #which line to start updating on based on function Print-Settings()
 $emptyspaces = ""
 $isprocessactive = $False
 $portupdatesuccessful = $False
@@ -57,13 +58,12 @@ $portupdatesuccessful = $False
 
 #TODO: Configuring Logging.
 #TODO: Make debug flags to stop clearing the screens
+#TODO: Trigger push notifications, possible discord? 
 
-
-
-Function clearscreen ($start, $fullclear = $false) {
+Function Invoke-ClearScreen ($start, $fullclear = $false) {
     if ($fullclear) {
 		clear;
-		printsettings;
+		Print-Settings;
 		[console]::SetCursorPosition($savex,$start)
 	} else {
 		[console]::SetCursorPosition($savex,$start)
@@ -74,7 +74,7 @@ Function clearscreen ($start, $fullclear = $false) {
 		[console]::SetCursorPosition($savex,$start)
 	}
 }
-Function printsettings(){
+Function Print-Settings(){
 	write-host "Auto Check / Advance Routing are set to:"$ENABLEAUTOCHECK "/" $EnabledAdvanceRouting
 }
 Function isNumeric ($x) {
@@ -82,7 +82,7 @@ Function isNumeric ($x) {
     $isNum = [System.Int32]::TryParse($x, [ref]$x2)
     return $isNum
 }
-Function listservers{
+Function List-Servers{
 	$SaveY=[Console]::CursorTop-1
 	[console]::SetCursorPosition($saveX,$SaveY+4)
 	for ($i = $PIAserver.getlowerbound(0);$i -le $PIAserver.getupperbound(0); $i++){
@@ -91,7 +91,7 @@ Function listservers{
 	}
 	[console]::SetCursorPosition($saveX,$SaveY)
 }
-Function AdvanceRouting{
+Function Set-AdvanceRouting{
     write "Flushing DNS cache"
     ipconfig /flushdns
     write "Adding temporary route for DNS Server:$DNSSERVER by gateway:$defaultgateway"
@@ -126,19 +126,19 @@ Function AdvanceRouting{
 }
 
 #TODO: What is the point here in changing the window size 
-Function setwindowsize {
+Function Set-WindowSize {
 	$pshost = get-host
 	$pswindow = $pshost.ui.rawui
 	$psWindow.WindowSize = @{Width=1; Height=1}
 	$psWindow.BufferSize = @{Width=$Windowswidth; Height=$WindowsHeight}
 	$psWindow.WindowSize = @{Width=$Windowswidth; Height=$WindowsHeight}
 }
-Function resetadapter{
+Function Reset-Adapter{
 	Stop-Service OpenVPNService
 	if ($EnabledAdvanceRouting) {
-		clearscreen $startline  $True
+		Invoke-ClearScreen $startline  $True
 		Write-Host $a.toshorttimestring() "Advance Routing Enabled, resetting up routes to connects to PIA server."
-		AdvanceRouting
+		Set-AdvanceRouting
 	}
 	Start-Service OpenVPNService
 	$ip = ''
@@ -150,21 +150,21 @@ Function resetadapter{
 			Start-Sleep -s 5
 		}
 		catch {
-			clearscreen $startline  $True
+			Invoke-ClearScreen $startline  $True
 			$counter +=1
 			Write-Host "Waiting for VPN to connect" $counter
 			Start-Sleep -s 1
 		}
 	}
-	clearscreen $startline $True
+	Invoke-ClearScreen $startline $True
 }
 
 Function Stop-PIAAdapter {
 	Stop-Service OpenVPNService
 }
-Function fnqbittorrent{
+Function Set-QBTorrent{
 	try {
-		clearscreen ($startline + 1)
+		Invoke-ClearScreen ($startline + 1)
 		$url="http://127.0.0.1:" + $WEBGUI_PORT_qb
 		$postParams = "username=$WEBGUI_USER_qb&password=$WEBGUI_PASS_qb"
 		$response = Invoke-WebRequest -Uri $url"/login" -Method POST -Body $postParams -Headers @{"Referer"= $url } -SessionVariable my_session
@@ -185,20 +185,7 @@ Function fnqbittorrent{
 	
 }
 
-#TODO: figure out what this does and why we will still need it. 
-Function setapp{
-	try{
-		return invoke-expression  $Applist[1]
-	}
-	catch [system.exception] {
-		Write-Host $a.toshorttimestring() "Unable to call function script error. This is an unrecoverable error."
-		$error[0].ToString() + $error[0].InvocationInfo.PositionMessage
-		Start-Sleep -s 60
-		return $False
-	}
-	
-}
-Function fnqbittorrentstalling{
+Function Test-QBtorrentStalling{
 	try {
 		$url = "http://" + $ip + ":" + $WEBGUI_PORT_qb
 		$web = New-Object System.Net.WebClient
@@ -241,8 +228,8 @@ Function fnqbittorrentstalling{
 	}
 }
 
-setwindowsize
-printsettings
+Set-WindowSize
+Print-Settings
 if ($waittime -gt 0) {
 	Write-Host "Waiting $waittime seconds before continuing"
 	Start-Sleep -s $waittime
@@ -254,7 +241,7 @@ while($true) {
 	try {
         $ip = (Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Where-Object {$_.Description -like "TAP*"}).IPAddress[0]
 		if(($ip -ne $currentip) -and (-not $servererror)){
-			clearscreen ($startline)
+			Invoke-ClearScreen ($startline)
 			$servererror = $true
 			Write-Host $a.toshorttimestring() "IP Address changed Detected" 
 		}
@@ -264,9 +251,9 @@ while($true) {
 	catch [system.exception] {
 		$a = get-date
 		if ($ENABLEAUTOCHECK) {
-			clearscreen $startline  $True
+			Invoke-ClearScreen $startline  $True
 			Write-Host $a.toshorttimestring() "VPN is not connected. Restarting service."
-			resetadapter
+			Reset-Adapter
 		} else {
 			Write-Host $a.toshorttimestring() "VPN is not connected. Checking again in 1 minute."
 			Start-Sleep -s 60
@@ -274,7 +261,7 @@ while($true) {
 		continue
 	}
 
-	$ProcessActive = Get-Process $Applist[0] -ErrorAction SilentlyContinue
+	$ProcessActive = Get-Process $TorrentApp -ErrorAction SilentlyContinue
 	
 	if($ProcessActive -eq $null) {
 		$isprocessactive = $False
@@ -284,7 +271,7 @@ while($true) {
 	}
 	
 	if($disableportforward -or $disableportforwarduser) {
-		clearscreen $startline 
+		Invoke-ClearScreen $startline 
 		$a= get-date
 		$servererror = $false
 		if ($disableportforward){
@@ -308,11 +295,11 @@ while($true) {
 			} else {
 				$port = $response.Substring($response.IndexOf(":")+1,$response.IndexOf("}")-$response.IndexOf(":")-1)
 				if (isNumeric ($port) ) {
-					clearscreen ($startline)
+					Invoke-ClearScreen ($startline)
 					Write-Host "Port given is $port"
 					$servererror = $false
 				} else {
-					clearscreen ($startline)
+					Invoke-ClearScreen ($startline)
 					Write-Host $a.toshorttimestring() "Server returned an error, you must request the port within 2 minutes of connecting!"
 					Write-host -ForegroundColor "Yellow" $a.toshorttimestring() "You are currently set to connect to PIA server" $PIAserver[$PIAservernum][0]"."
 				}
@@ -326,7 +313,7 @@ while($true) {
 				Write-Host $a.toshorttimestring() "Server returned an error, you must request the port within 2 minutes of connecting!"
 				Write-Host $a.toshorttimestring() "Unable to connect to the PIA port server. Restarting service."
 				Start-Sleep -s 10
-				resetadapter
+				Reset-Adapter
 				$servererror = $true
 			} else {
 				Write-Host $a.toshorttimestring() "Unable to connect to the remote host. Retrying in 20 seconds."
@@ -338,9 +325,9 @@ while($true) {
 	}
 	if (!$portupdatesuccessful -and !$servererror) {
 		if ($isprocessactive) {
-			$portupdatesuccessful = setapp
+			$portupdatesuccessful = Set-QBTorrent
 		} else {
-			Write-host $a.toshorttimestring() $Applist[0] "is not running."
+			Write-host $a.toshorttimestring() $TorrentApp "is not running."
 		}
 	}
 	if ($Checkqbittorentstalled ){
@@ -350,7 +337,7 @@ while($true) {
 				write-host "Checking if qBittorrent is stalled at " $Checkqbittorentstalledtime.toshorttimestring()
 			}else {
 				if ($Checkqbittorentstalledtime -le (get-date)){
-					fnqbittorrentstalling
+					Test-QBtorrentStalling
 					$Checkqbittorentstalledtime = (get-date).Addminutes($Checkqbittorentstalledtimer)
 					Write-Host $a.toshorttimestring() "qBitTorrent is fine, check again at " $Checkqbittorentstalledtime.toshorttimestring()
 				} Else {
@@ -364,19 +351,19 @@ while($true) {
 
 	if ($ENABLEAUTOCHECK) {
 		$saveY =  [console]::CursorTop
-		clearscreen $saveY $false
+		Invoke-ClearScreen $saveY $false
 		$a= get-date
 		Write-Host $a.toshorttimestring() "Checking to see if VPN is still active."
 		$EnableAutoCheckrespone = ping -S $ip www.privateinternetaccess.com -n 3 -4 | Out-String
 		if 	($EnableAutoCheckrespone.indexof("Average") -lt 1) {
 			Write-Host $a.toshorttimestring() "VPN is connected, but ping response was $EnableAutoCheckrespone , restarting service."
 			Start-Sleep -s 10
-			resetadapter
+			Reset-Adapter
 			$servererror = $true 
 		} else {
 			$EnableAutoCheckrespone = $EnableAutoCheckrespone.substring($EnableAutoCheckrespone.indexof("Average"))
 			$EnableAutoCheckrespone = $EnableAutoCheckrespone.substring(0,$EnableAutoCheckrespone.length -2)
-			clearscreen $saveY $false
+			Invoke-ClearScreen $saveY $false
 			Write-Host $a.toshorttimestring() "VPN is still active and ping $EnableAutoCheckrespone."
 		}
 	} 
@@ -387,7 +374,7 @@ while($true) {
 	if ($EnabledAdvanceRouting) {Write-host -ForegroundColor "Yellow" "You are currently connected to"$PIAserver[$PIAservernum][0] $PIAcipher[$PIAStrongEncryption][$PIAportsnum] ($PIAprotocal[$PIAportsnum]).ToUpper() $PIAcipher[$PIAStrongEncryption][6]}
 	Write-host "Checking every $checktime seconds to see if your connected."
 	Write-Host "Press 'q' to quit, 'p' to enable/disabled port forwarding,"
-	Write-Host "Press 'a' to cycle between Utorrent and qBittorrent, 'r' to stop and reconnect to PIA,"
+	Write-Host "'r' to stop and reconnect to PIA,"
 	Write-Host "'l' to list PIA severs, '0-9' to connected to a specific PIA server,"
 	Write-Host "'t' to change protocols, 'e' to increase encryption, or any other key to refresh."
 	$counter = 0
@@ -404,34 +391,22 @@ while($true) {
 			Stop-PIAAdapter
 			break;
 		}
-		if ($key.character -eq "Z") {
-			Stop-PIAAdapter
-		}
 		if ($key.character -eq "R") {
-			resetadapter
+			Reset-Adapter
 			$servererror = $true
 		}
 		if ($key.character -eq "P") {
 			$disableportforwarduser=!$disableportforwarduser
 			if (!$disableportforwarduser){
 				if (isNumeric ($port) ) {
-                    clearscreen ($startline)
+                    Invoke-ClearScreen ($startline)
                     Write-Host "Port given before was $port"
-					$portupdatesuccessful = setapp
+					$portupdatesuccessful = Set-QBTorrent
 					$savey +=1
 				} else {
 					$servererror = $true
 				}
 			}
-		}
-		if ($key.character -eq "A") {
-			if ($Applistnum -eq 0) { 
-				$Applistnum = 1	
-			} else {
-				$Applistnum = 0
-			}
-			Write-host  "Changing app to update to" $Applist[$Applistnum][0]
-			$portupdatesuccessful = setapp
 		}
 		if ($key.character -eq "T") {
 			if ($EnabledAdvanceRouting) {
@@ -442,7 +417,7 @@ while($true) {
 				}
 				write-Host "Changing Protocol to" ($PIAprotocal[$PIAportsnum]).ToUpper()
 				Start-Sleep -s 5
-				resetadapter
+				Reset-Adapter
 				$servererror = $true
 			} else {
 				Write-host  "Enable Advance Routing to use this"
@@ -458,7 +433,7 @@ while($true) {
 				}
 				write-Host "Changing Encryption to" $PIAcipher[$PIAStrongEncryption][6]
 				Start-Sleep -s 5
-				resetadapter
+				Reset-Adapter
 				$servererror = $true
 			} else {
 				Write-host  "Enable Advance Routing to use this"
@@ -471,20 +446,20 @@ while($true) {
 				write-Host "Changing Server to"  $PIAserver[$PIAservernum][0]
 				$disableportforward = !$PIAserver[$PIAservernum][1]
 				Start-Sleep -s 5
-				resetadapter
+				Reset-Adapter
 				$servererror = $true
 			} else {
 				Write-host  "Enable Advance Routing to use this"
 				Start-Sleep -s 10
 			}
 		}
-		if ($key.character -eq "L" ) {listservers;}
+		if ($key.character -eq "L" ) {List-Servers;}
 			[Threading.Thread]::Sleep(500)
 			$Host.UI.RawUI.FlushinputBuffer()
 		} 
 	if ($servererror){
-			clearscreen $startline
+			Invoke-ClearScreen $startline
 		} else {
-			clearscreen $savey
+			Invoke-ClearScreen $savey
 		}
 }
